@@ -27,6 +27,7 @@ return new class extends Migration
             $table->boolean('voting_allowed')->default(false);
             $table->integer('total_votes')->default(0);
             
+          
         });
     }
 

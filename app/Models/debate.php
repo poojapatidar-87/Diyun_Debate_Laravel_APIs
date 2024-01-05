@@ -50,4 +50,11 @@ class debate extends Model
     {
         return $this->hasMany(Vote::class);
     }
+
+
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class, 'debate_tag');
+    }
+    
 }

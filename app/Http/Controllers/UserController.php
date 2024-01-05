@@ -10,6 +10,7 @@ use App\Notifications\VerifyEmailNotification;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Mail\Message;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -153,5 +154,50 @@ class UserController extends Controller
         ], 200);
     }
 
+
+    /**
+     * Function for editing the user profile.
+     */
+    public function editProfile(Request $request)
+    {
+        // Validate the request data
+        $request->validate([
+            'profile_picture' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'biography' => 'nullable|string',
+            'is_private_user' => 'boolean',
+        ]);
+
+        // Get the authenticated user
+        $user = auth()->user();
+
+        // Update profile picture if provided
+        if ($request->hasFile('profile_picture')) {
+            // Store the new profile picture and update the database column
+            $profilePicturePath = $request->file('profile_picture')->store('profile_pictures', 'public');
+            $user->profile_picture = $profilePicturePath;
+        }
+
+        // Update biography if provided
+        if ($request->filled('biography')) {
+            $user->biography = $request->biography;
+        }
+
+        // Update is_private_user if provided
+        if ($request->filled('is_private_user')) {
+            $user->is_private_user = $request->is_private_user;
+        }
+
+        // Save the changes to the user model
+        $user->save();
+
+        // Return a response with the updated user information
+        return response([
+            'user' => $user,
+            'message' => 'Profile updated successfully',
+            'status' => 'success',
+        ], 200);
+    }
+
+   
 }
 

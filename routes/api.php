@@ -8,6 +8,9 @@ use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ContactController;
 
+
+
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -35,7 +38,7 @@ Route::get('getdebatebyid/{id}/editdebate', [DebateController::class, 'editdebat
 Route::put('getdebatebyid/{id}/editdebate', [DebateController::class, 'updatedebate']);//update debate
 Route::delete('getdebatebyid/{id}/deletedebate', [DebateController::class, 'destroydebate']);//delete debate
 Route::put('getdebatebyid/{id}/imageupload', [DebateController::class, 'debateimageupload']);// upload images
-Route::get('/debates/tags', [DebateController::class, 'getAllTags']);//display all tags
+// Route::get('/getAllTags', [DebateController::class, 'getAllTags']);
 Route::get('/debates/tag/{tag}', [DebateController::class, 'getDebatesByTag']);//get debates by tag
 Route::get('getdebatebyid/{id}/displaydebate', [DebateController::class, 'getDebateByIdWithHierarchy']); // Display Debate by ID
 
@@ -47,6 +50,23 @@ Route::get('/debates/{debateId}/commentsList', [DebateController::class, 'getCom
 
 Route::post('/debates/{parentId}/addProsChildDebate', [DebateController::class, 'addProsChildDebate']); // Add pros to debate
 Route::post('/debates/{parentId}/addConsChildDebate', [DebateController::class, 'addConsChildDebate']); // Add Cons to debate
+// Public route for debate topic search
+Route::post('/search', [DebateController::class, 'searchDebates']);
+Route::post('/addTag', [DebateController::class, 'addTag']);
+Route::get('/tags', [DebateController::class, 'getAllTags']);
+Route::post('/store-with-tags', [DebateController::class, 'storeDebateWithTags']);
+
+
+
+
+
+
+
+
+
+
+
+
 
 // Protetcted Routes (user Authentication needed for these APIs)
 Route::middleware(['auth:sanctum', 'verified'])->group(function(){
@@ -57,4 +77,7 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function(){
     Route::post('/debates/{debateId}/addComments', [DebateController::class, 'addComment']); // Add Comments
     Route::put('/comments/{commentId}/editComment', [DebateController::class, 'editComment']); // Edit Comments
     Route::delete('/comments/{commentId}/hideComment', [DebateController::class, 'hideComment']); // hide Comments
+    Route::post('/edit-profile', [UserController::class, 'editProfile']);
+    
+   
 }); 

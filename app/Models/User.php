@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -19,12 +20,15 @@ class User extends Authenticatable implements MustVerifyEmail
      * @var array<int, string>
      */
     protected $fillable = [
+        'profile_picture',
         'name',
-        'email',
-        'password',
         'username',
-        'verification_token',
+        'password',
+        'email',
         'email_verified_at', 
+        'verification_token',
+        'biography',
+        'is_private_user',
     ];
 
     /**
@@ -45,6 +49,7 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_private_user' => 'boolean',
     ];
 
 }
