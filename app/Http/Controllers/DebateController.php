@@ -269,7 +269,6 @@ class DebateController extends Controller
                     'message' => "No Such Topic Found!"
                 ], 404);
             }
-
             // Check if the authenticated user is the owner of the debate
             if ($user->id !== $storevar->user_id) {
                 return response()->json([

@@ -8,6 +8,7 @@ use App\Http\Controllers\VerificationController;
 use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\TeamController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +55,11 @@ Route::post('/debates/{parentId}/addConsChildDebate', [DebateController::class, 
 
 Route::get('/user/{userId}/profile-details', [UserController::class, 'getUserProfileDetails']); // Get User details by user ID
 
+Route::post('/teams', [TeamController::class, 'create']);//Create Team 
+Route::get('/teams', [TeamController::class, 'listTeams']);//Display Team names
+
+
+
 // Protetcted Routes (user Authentication needed for these APIs)
 Route::middleware(['auth:sanctum', 'verified'])->group(function(){
     Route::post('/logout', [UserController::class, 'logout']); // API for user logout
@@ -71,6 +77,8 @@ Route::middleware(['auth:sanctum', 'verified'])->group(function(){
     Route::delete('/comments/{commentId}/hideComment', [DebateController::class, 'hideComment']); // hide Comments
 
     Route::post('/debates/{debateId}/thanks', [DebateController::class, 'giveThanks']); // Thank author of the debate
+    
+
 }); 
 
 
