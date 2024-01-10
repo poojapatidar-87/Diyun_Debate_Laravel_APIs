@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\Storage;
 use App\FileUploadService;
 use App\Models\DebateComment;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Tag;
+
 
 
 class DebateController extends Controller
@@ -22,7 +24,7 @@ class DebateController extends Controller
 
     public function getalldebates()
     {
-        $debates = Debate::whereNull('parent_id')->get();
+        $debates = Debate::with('tags')->whereNull('parent_id')->get();
 
         // Transform the debates into a simplified structure
         $transformedDebates = $debates->map(function ($debate) {
@@ -42,23 +44,25 @@ class DebateController extends Controller
         return $debate;
     }
 
+ 
 
-    /** CLASS TO CREATE DEBATE ***/
 
-    public function storetodb(Request $request)
+    /** CLASS TO CREATE DEBATE WITH TAGS **/
+
+    public function storeDebateWithTags(Request $request)
     {
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:191',
             'thesis' => 'required|string|max:191',
             'tags' => 'string|max:191',
             'backgroundinfo' => 'string|max:191',
-            'file' => 'nullable|file|mimes:jpeg,png,jpg,gif|max:2048', // Add this line for file validation
+            'file' => 'nullable|file|mimes:jpeg,png,jpg,gif|max:2048',
         ]);
     
         if ($validator->fails()) {
             return response()->json([
                 'status' => 422,
-                'errors' => $validator->messages()
+                'errors' => $validator->messages(),
             ], 422);
         }
     
@@ -82,9 +86,23 @@ class DebateController extends Controller
 
         $storevar = debate::create([
             'user_id' => $user->id,
+        ]);
+        // Convert tags to an array
+        $tagsArray = array_map('trim', explode(',', $request->tags));
+    
+        // Check if each tag exists in the tags table; if not, add it
+        $tagModels = [];
+        foreach ($tagsArray as $tagName) {
+            $tag = Tag::firstOrCreate(['tag' => strtolower($tagName)]);
+            $tagModels[] = $tag->id; // Use the tag ID, not the entire model
+        }
+
+    
+        // Create a new Debate instance
+        $debate = Debate::create([
             'title' => $request->title,
             'thesis' => $request->thesis,
-            'tags' => json_encode($tagsArray), // Convert the array to a JSON string before storing
+            'tags' => implode(',', $tagsArray), // Store tags directly in the 'tags' column of the debate table
             'backgroundinfo' => $request->backgroundinfo,
             'image' => $filePath,
             'imgname' => $filePath ? pathinfo($filePath, PATHINFO_FILENAME) : null,
@@ -102,14 +120,31 @@ class DebateController extends Controller
             return response()->json([
                 'status' => 200,
                 'message' => 'Debate topic created Successfully',
+            ]);
+        // Attach tags to the debate
+            $debate->tags()->attach($tagModels);
+
+    
+        // Save tags directly in the 'tags' table
+        foreach ($tagsArray as $tagName) {
+            Tag::firstOrCreate(['tag' => strtolower($tagName)]);
+        }
+    
+        if ($debate) {
+            return response()->json([
+                'status' => 200,
+                'message' => 'Debate topic created successfully',
             ], 200);
         } else {
             return response()->json([
                 'status' => 500,
                 'message' => "OOPS! Something went wrong!",
+                'message' => 'Oops! Something went wrong!',
             ], 500);
         }
-    }
+    }}
+    
+
 
 
     /** CLASS TO GET DEBATE BY ID ***/
@@ -117,6 +152,15 @@ class DebateController extends Controller
     public function getbyid($id)
     {
         $user = auth('sanctum')->user(); // Retrieve the authenticated user
+        $findbyidvar = debate::find($id);
+        if ($findbyidvar) {
+            // Decode the JSON-encoded tags
+            $findbyidvar->tags = json_decode($findbyidvar->tags);
+            return response()->json([
+                'status' => 200,
+                'Debate' => $findbyidvar,
+            ], 200);
+        } else {
 
         if (!$user) {
             return response()->json([
@@ -131,6 +175,7 @@ class DebateController extends Controller
             return response()->json([
                 'status' => 404,
                 'message' => "No Such Topic Found!"
+
             ], 404);
         }
     
@@ -147,30 +192,34 @@ class DebateController extends Controller
             'Debate' => $findbyidvar
         ], 200);
     }
-
-
+    }
     /** CLASS TO FETCH ALL TAGS **/
 
     public function getAllTags()
     {
-        $tags = Debate::all()->pluck('tags')->flatMap(function ($tags) {
-            return json_decode($tags);
-        })->unique();
+        try {
+            $tags = Tag::all(['tag', 'image']);
 
-        return response()->json([
-            'status' => 200,
-            'tags' => $tags,
-        ], 200);
+            return response()->json([
+                'status' => 200,
+                'tags' => $tags,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 500,
+                'error' => 'Internal Server Error',
+            ], 500);
+        }
     }
 
     /** CLASS TO FETCH DEBATES BY TAG **/
 
     public function getDebatesByTag($tag)
     {
-        $debates = Debate::where(function($query) use ($tag) {
+        $debates = Debate::where(function ($query) use ($tag) {
             $tagArray = json_encode($tag);
-            $query->where('tags', 'like', '%"'. $tag .'"%'); // Look for exact match within the JSON string
-            $query->orWhere(function($query) use ($tagArray) {
+            $query->where('tags', 'like', '%"' . $tag . '"%'); // Look for exact match within the JSON string
+            $query->orWhere(function ($query) use ($tagArray) {
                 $query->whereJsonContains('tags', $tagArray); // Look for match within the JSON array
             });
         })->get();
@@ -194,12 +243,18 @@ class DebateController extends Controller
         }
     }
 
-
     /** CLASS TO EDIT DEBATE BY ID ***/
 
     public function editdebateindb($id)
     {
         $user = auth('sanctum')->user(); // Retrieve the authenticated user
+        $findbyidvar = debate::find($id);
+        if ($findbyidvar) {
+            return response()->json([
+                'status' => 200,
+                'Debate' => $findbyidvar,
+            ], 200);
+        } else {
 
         if (!$user) {
             return response()->json([
@@ -229,9 +284,8 @@ class DebateController extends Controller
             'status' => 200,
             'Debate' => $findbyidvar
         ], 200);
-    }
+    }}
     
-
 
     /** CLASS TO UPDATE DEBATE BY ID ***/
 
@@ -308,54 +362,104 @@ class DebateController extends Controller
                     'message' => 'Debate topic Updated Successfully'
                 ], 200);
             } 
+        $validator = Validator::make($request->all(), [
+            'title' => 'string|max:191',
+            'thesis' => 'string|max:191',
+            'tags' => 'string|max:191',
+            'backgroundinfo' => 'string|max:191',
+            'file' => 'nullable|file|mimes:jpeg,png,jpg,gif|max:2048', // Add this line for file validation
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 422,
+                'errors' => $validator->messages(),
+            ], 422);
+        }
+
+        $storevar = debate::find($id);
+        if ($storevar) {
+            // Delete existing file
+            FileUploadService::delete($storevar->image);
+
+            // Upload new file if provided
+            $filePath = null;
+            if ($request->hasFile('file')) {
+                $file = $request->file('file');
+                $filePath = FileUploadService::upload($file, 'debate_images');
+            }
+
+            // Convert tags to an array
+            $tagsArray = explode(',', $request->tags);
+
+            $storevar->update([
+                'title' => $request->title,
+                'thesis' => $request->thesis,
+                'tags' => json_encode($tagsArray),
+                'backgroundinfo' => $request->backgroundinfo,
+                'image' => $filePath,
+                'imgname' => $filePath ? pathinfo($filePath, PATHINFO_FILENAME) : null,
+                'isDebatePublic' => $request->isDebatePublic,
+                'isType' => $request->isType,
+                'voting_allowed' => $request->voting_allowed ?? false,
+            ]);
+
+            return response()->json([
+                'status' => 200,
+                'message' => 'Debate topic Updated Successfully',
+            ], 200);
+        } else {
+            return response()->json([
+                'status' => 404,
+                'message' => "No Such Topic Found!",
+            ], 404);
+        }
     }
 
-        
     /** CLASS TO DELETE DEBATE ***/
 
     public function destroydebate($id)
     {
-            // Find the debate by ID with its pros and cons
-            $debate = Debate::with(['pros', 'cons'])->find($id);
+        // Find the debate by ID with its pros and cons
+        $debate = Debate::with(['pros', 'cons'])->find($id);
 
-            if (!$debate) {
-                return response()->json([
-                    'status' => 404,
-                    'message' => "Debate not found!"
-                ], 404);
-            }
-
-            // Delete the debate and its entire hierarchy
-            $this->deleteDebateHierarchy($debate);
-
+        if (!$debate) {
             return response()->json([
-                'status' => 200,
-                'message' => "Debate topic and its hierarchy deleted successfully"
-            ], 200);
+                'status' => 404,
+                'message' => "Debate not found!",
+            ], 404);
+        }
+
+        // Delete the debate and its entire hierarchy
+        $this->deleteDebateHierarchy($debate);
+
+        return response()->json([
+            'status' => 200,
+            'message' => "Debate topic and its hierarchy deleted successfully",
+        ], 200);
     }
 
     private function deleteDebateHierarchy($debate)
     {
-            // Recursively delete child debates (pros and cons)
-            if ($debate->pros) {
-                foreach ($debate->pros as $pro) {
-                    $this->deleteDebateHierarchy($pro);
-                }
+        // Recursively delete child debates (pros and cons)
+        if ($debate->pros) {
+            foreach ($debate->pros as $pro) {
+                $this->deleteDebateHierarchy($pro);
             }
+        }
 
-            if ($debate->cons) {
-                foreach ($debate->cons as $con) {
-                    $this->deleteDebateHierarchy($con);
-                }
+        if ($debate->cons) {
+            foreach ($debate->cons as $con) {
+                $this->deleteDebateHierarchy($con);
             }
+        }
 
-            // Delete the current debate
-            $debate->delete();
+        // Delete the current debate
+        $debate->delete();
     }
 
-
     /*** CLASS TO SELECT PROS SIDE ***/
-    
+
     public function addProsChildDebate(Request $request, int $parentId)
     {
         return $this->addChildDebate($request, $parentId, 'pros');
@@ -367,7 +471,6 @@ class DebateController extends Controller
     {
         return $this->addChildDebate($request, $parentId, 'cons');
     }
-    
 
     /*** CLASS TO ADD CHILD DEBATE BY SELECTING SIDE (PROS/CONS) ***/
 
@@ -377,11 +480,11 @@ class DebateController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:191',
         ]);
-    
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => 422,
-                'errors' => $validator->messages()
+                'errors' => $validator->messages(),
             ], 422);
         }
     
@@ -398,14 +501,14 @@ class DebateController extends Controller
 
         // Find the parent debate
         $parentDebate = Debate::find($parentId);
-    
+
         if (!$parentDebate) {
             return response()->json([
                 'status' => 404,
-                'message' => "Parent Debate not found!"
+                'message' => "Parent Debate not found!",
             ], 404);
         }
-    
+
         // Add the child debate with the specified side
         $childDebate = Debate::create([
             'user_id' => $user->id,
@@ -426,8 +529,6 @@ class DebateController extends Controller
             'childDebate' => $childDebate,
         ], 200);
     }
-    
-
 
     /*** CLASS TO DISPLAY DEBATE BY ID ***/
 
@@ -439,7 +540,7 @@ class DebateController extends Controller
         if (!$debate) {
             return response()->json([
                 'status' => 404,
-                'message' => 'Debate not found!'
+                'message' => 'Debate not found!',
             ], 404);
         }
 
@@ -471,7 +572,6 @@ class DebateController extends Controller
         return $debate;
     }
 
-
     /*** CLASS TO VOTE DEBATES ***/
 
     public function vote(Request $request, int $debateId)
@@ -483,7 +583,7 @@ class DebateController extends Controller
         if ($validator->fails()) {
             return response()->json([
                 'status' => 422,
-                'errors' => $validator->messages()
+                'errors' => $validator->messages(),
             ], 422);
         }
 
@@ -503,14 +603,14 @@ class DebateController extends Controller
         if (!$debate) {
             return response()->json([
                 'status' => 404,
-                'message' => "Debate not found!"
+                'message' => "Debate not found!",
             ], 404);
         }
 
         if (!$debate->voting_allowed) {
             return response()->json([
                 'status' => 403,
-                'message' => "Voting is not allowed for this debate."
+                'message' => "Voting is not allowed for this debate.",
             ], 403);
         }
 
@@ -535,7 +635,6 @@ class DebateController extends Controller
         ], 200);
     }
 
-
     /*** CLASS TO GET VOTE COUNT ***/
 
     public function getVoteCounts($debateId)
@@ -545,7 +644,7 @@ class DebateController extends Controller
         if (!$debate) {
             return response()->json([
                 'status' => 404,
-                'message' => "Debate not found!"
+                'message' => "Debate not found!",
             ], 404);
         }
 
@@ -567,7 +666,6 @@ class DebateController extends Controller
             'voteCounts' => $allVoteCounts,
         ], 200);
     }
-
 
     /*** CLASS TO ADD COMMENTS IN DEBATE ***/
 
@@ -611,8 +709,6 @@ class DebateController extends Controller
         ], 200);
     }
 
-
-    
     /*** CLASS TO EDIT COMMENT ***/
 
     public function editComment(Request $request, int $commentId)
@@ -623,7 +719,7 @@ class DebateController extends Controller
         if (!$comment) {
             return response()->json([
                 'status' => 404,
-                'message' => "Comment not found!"
+                'message' => "Comment not found!",
             ], 404);
         }
 
@@ -631,7 +727,7 @@ class DebateController extends Controller
         if ($comment->user_id !== $user->id) {
             return response()->json([
                 'status' => 403,
-                'message' => "You do not have permission to edit this comment."
+                'message' => "You do not have permission to edit this comment.",
             ], 403);
         }
 
@@ -647,8 +743,6 @@ class DebateController extends Controller
         ], 200);
     }
 
-
-
     /*** CLASS TO HIDE COMMENT ***/
 
     public function hideComment(Request $request, int $commentId)
@@ -659,7 +753,7 @@ class DebateController extends Controller
         if (!$comment) {
             return response()->json([
                 'status' => 404,
-                'message' => "Comment not found!"
+                'message' => "Comment not found!",
             ], 404);
         }
 
@@ -667,7 +761,7 @@ class DebateController extends Controller
         if ($comment->user_id !== $user->id) {
             return response()->json([
                 'status' => 403,
-                'message' => "You do not have permission to hide this comment."
+                'message' => "You do not have permission to hide this comment.",
             ], 403);
         }
 
@@ -679,7 +773,6 @@ class DebateController extends Controller
             'message' => 'Comment hidden successfully',
         ], 200);
     }
-
 
     /*** CLASS TO RETRIVE COMMENTS LIST ***/
 
@@ -756,6 +849,7 @@ class DebateController extends Controller
 
 
     /*** CLASS TO SEARCH DEBATE BY TAG, TITLE, THESIS ***/
+    /*** CLASS TO SEARCH DEBATES ***/
 
     public function searchDebates(Request $request)
     {
@@ -763,6 +857,7 @@ class DebateController extends Controller
             'search_query' => 'required|string|max:191',
         ]);
     
+
         if ($validator->fails()) {
             return response()->json([
                 'status' => 422,
@@ -772,6 +867,9 @@ class DebateController extends Controller
     
         $searchQuery = $request->search_query;
     
+
+        $searchQuery = $request->search_query;
+
         $mainDebates = Debate::whereNull('parent_id') // Only select main debates
             ->where(function ($query) use ($searchQuery) {
                 $query->where('title', 'LIKE', '%' . $searchQuery . '%') // Use LIKE for case-insensitive search
@@ -783,12 +881,14 @@ class DebateController extends Controller
             })
             ->get();
     
+
         if ($mainDebates->count() > 0) {
             // Transform the main debates into a simplified structure
             $transformedMainDebates = $mainDebates->map(function ($mainDebate) {
                 return $this->transformMainDebate($mainDebate);
             });
     
+
             return response()->json([
                 'status' => 200,
                 'debates' => $transformedMainDebates,
@@ -843,5 +943,42 @@ class DebateController extends Controller
         ], 200);
     }
     
+
+
+/*** CLASS TO ADD TAGS WITH BACKGROUND IMAGE ***/
+
+    public function addTag(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'tag' => 'string|max:191|unique:tags',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 422,
+                'errors' => $validator->messages(),
+            ], 422);
+        }
+
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $imagePath = Storage::disk('public')->put('tag_images', $image);
+        }
+
+        $tag = Tag::create([
+            'tag' => $request->tag,
+            'image' => $imagePath,
+        ]);
+
+        return response()->json([
+            'status' => 200,
+            'message' => 'Tag added successfully',
+            'tag' => $tag,
+            'image_url' => $imagePath ? asset('storage/' . $imagePath) : null,
+
+        ], 200);
+    }
 
 }

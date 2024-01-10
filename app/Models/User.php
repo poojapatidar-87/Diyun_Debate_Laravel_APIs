@@ -9,6 +9,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
+
 class User extends Authenticatable implements MustVerifyEmail
 {
     use HasApiTokens, HasFactory, Notifiable;
@@ -21,9 +22,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $fillable = [
         'profile_picture',
         'name',
-        'email',
-        'password',
         'username',
+<<<<<<< HEAD
         'role',
         'isProfilePrivate',
         'total_claims',
@@ -33,7 +33,14 @@ class User extends Authenticatable implements MustVerifyEmail
         'total_received_thanks',
         'biography',
         'verification_token',
+=======
+        'password',
+        'email',
+>>>>>>> 57aed5eb73a391276cdbbddbda0f80358a55b268
         'email_verified_at', 
+        'verification_token',
+        'biography',
+        'is_private_user',
     ];
 
     /**
@@ -54,7 +61,11 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+<<<<<<< HEAD
         'isProfilePrivate' => 'boolean',
+=======
+        'is_private_user' => 'boolean',
+>>>>>>> 57aed5eb73a391276cdbbddbda0f80358a55b268
     ];
 
     public function thanks()

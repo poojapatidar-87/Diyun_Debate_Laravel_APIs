@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+            $table->string('profile_picture')->nullable();
             $table->string('name');
             $table->string('profile_picture')->nullable();
             $table->string('email');
@@ -27,7 +28,10 @@ return new class extends Migration
             $table->integer('total_received_thanks')->default(0);
             $table->text('biography')->nullable();
             $table->string('password');
+            $table->timestamp('email_verified_at')->nullable();
             $table->string('verification_token')->nullable();
+            $table->text('biography')->nullable();
+            $table->boolean('is_private_user')->default(false);
             $table->rememberToken();
             $table->timestamps();
         });

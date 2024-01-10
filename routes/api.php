@@ -10,6 +10,9 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeamController;
 
+
+
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -37,7 +40,7 @@ Route::get('getdebatebyid/{id}/editdebate', [DebateController::class, 'editdebat
 Route::put('getdebatebyid/{id}/editdebate', [DebateController::class, 'updatedebate']);//update debate
 Route::delete('getdebatebyid/{id}/deletedebate', [DebateController::class, 'destroydebate']);//delete debate
 Route::put('getdebatebyid/{id}/imageupload', [DebateController::class, 'debateimageupload']);// upload images
-Route::get('/debates/tags', [DebateController::class, 'getAllTags']);//display all tags
+// Route::get('/getAllTags', [DebateController::class, 'getAllTags']);
 Route::get('/debates/tag/{tag}', [DebateController::class, 'getDebatesByTag']);//get debates by tag
 Route::get('getdebatebyid/{id}/displaydebate', [DebateController::class, 'getDebateByIdWithHierarchy']); // Display Debate by ID
 Route::post('/search', [DebateController::class, 'searchDebates']); // search Debate by tag , thesis and title
@@ -52,6 +55,23 @@ Route::get('/debates/{debateId}/commentsList', [DebateController::class, 'getCom
 
 Route::post('/debates/{parentId}/addProsChildDebate', [DebateController::class, 'addProsChildDebate']); // Add pros to debate
 Route::post('/debates/{parentId}/addConsChildDebate', [DebateController::class, 'addConsChildDebate']); // Add Cons to debate
+// Public route for debate topic search
+Route::post('/search', [DebateController::class, 'searchDebates']);
+Route::post('/addTag', [DebateController::class, 'addTag']);
+Route::get('/tags', [DebateController::class, 'getAllTags']);
+Route::post('/store-with-tags', [DebateController::class, 'storeDebateWithTags']);
+
+
+
+
+
+
+
+
+
+
+
+
 
 Route::get('/user/{userId}/profile-details', [UserController::class, 'getUserProfileDetails']); // Get User details by user ID
 
@@ -97,3 +117,7 @@ Route::get('/admin/all-debates', [AdminController::class, 'getAllDebates']);
 Route::delete('/admin/delete-debate/{id}', [AdminController::class, 'deleteDebate']);
 
 Route::get('/admin/all-stats', [AdminController::class, 'getAllStats']);
+    Route::post('/edit-profile', [UserController::class, 'editProfile']);
+    
+   
+
