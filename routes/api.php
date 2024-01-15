@@ -9,6 +9,11 @@ use App\Http\Controllers\PasswordResetController;
 use App\Http\Controllers\ContactController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\TeamController;
+use App\Http\Controllers\InvitedController;
+use App\Mail\InvitationMail;
+
+
+
 
 
 
@@ -25,8 +30,8 @@ use App\Http\Controllers\TeamController;
 */
 
 // Public routes without authentication
-Route::post('/register', [UserController::class, 'register']); // API for user registration
-Route::post('/login', [UserController::class, 'login']); // API for user login
+Route::post('/register', [UserController::class, 'register'])->name('register'); // API for user registration
+Route::post('/login', [UserController::class, 'login'])->name('login'); // API for user login
 Route::post('/send-reset-password-email', [PasswordResetController::class, 'send_reset_password_email']); // API TO send Reset Password Email
 Route::post('/reset-password/{token}', [PasswordResetController::class, 'reset_password']); // API For reseting password
 Route::get('/verify-email/{token}', [VerificationController::class, 'verify'])->name('verification.verify');
@@ -61,22 +66,24 @@ Route::post('/addTag', [DebateController::class, 'addTag']);
 Route::get('/tags', [DebateController::class, 'getAllTags']);
 Route::post('/store-with-tags', [DebateController::class, 'storeDebateWithTags']);
 
-
-
-
-
-
-
-
-
-
-
-
-
 Route::get('/user/{userId}/profile-details', [UserController::class, 'getUserProfileDetails']); // Get User details by user ID
 
-Route::post('/teams', [TeamController::class, 'create']);//Create Team 
+// Api's related to team functionality
+Route::post('/teams', [TeamController::class, 'create'])->name('teams.create');//Create Team 
 Route::get('/teams', [TeamController::class, 'listTeams']);//Display Team names
+Route::post('/teams/{team}/invite', [TeamController::class, 'inviteMember'])->name('teams.invite');//invite members via email 
+Route::get('/teams/{team}/members', [TeamController::class, 'getTeamMembers']);//display list of team members 
+Route::get('/teams/{team}/member-count', [TeamController::class, 'getTeamMemberCount']);//Get number of members in the teams
+Route::get('/teams/{team}/searchTeamMembers',[TeamController::class,'searchTeamMembers']);//search members rom members list
+Route::get('/teams/{team}/generate-copyable-link', [TeamController::class, 'generateCopyableLink']);//generate copyable invite link
+Route::get('/join-team/{teamId}/{token}', [InvitedController::class ,'showJoinTeam'])->name('join-team');//click on generated link to join api
+Route::get('/invitation/{token}', [InvitedController::class, 'showInvitation']);
+
+
+
+
+
+
 
 
 
@@ -117,7 +124,7 @@ Route::get('/admin/all-debates', [AdminController::class, 'getAllDebates']);
 Route::delete('/admin/delete-debate/{id}', [AdminController::class, 'deleteDebate']);
 
 Route::get('/admin/all-stats', [AdminController::class, 'getAllStats']);
-    Route::post('/edit-profile', [UserController::class, 'editProfile']);
+Route::post('/edit-profile', [UserController::class, 'editProfile']);
     
    
 

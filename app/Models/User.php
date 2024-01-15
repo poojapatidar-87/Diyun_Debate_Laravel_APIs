@@ -23,7 +23,6 @@ class User extends Authenticatable implements MustVerifyEmail
         'profile_picture',
         'name',
         'username',
-<<<<<<< HEAD
         'role',
         'isProfilePrivate',
         'total_claims',
@@ -33,10 +32,8 @@ class User extends Authenticatable implements MustVerifyEmail
         'total_received_thanks',
         'biography',
         'verification_token',
-=======
         'password',
         'email',
->>>>>>> 57aed5eb73a391276cdbbddbda0f80358a55b268
         'email_verified_at', 
         'verification_token',
         'biography',
@@ -61,11 +58,8 @@ class User extends Authenticatable implements MustVerifyEmail
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-<<<<<<< HEAD
         'isProfilePrivate' => 'boolean',
-=======
         'is_private_user' => 'boolean',
->>>>>>> 57aed5eb73a391276cdbbddbda0f80358a55b268
     ];
 
     public function thanks()

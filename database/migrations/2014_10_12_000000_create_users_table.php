@@ -15,10 +15,8 @@ return new class extends Migration
             $table->id();
             $table->string('profile_picture')->nullable();
             $table->string('name');
-            $table->string('profile_picture')->nullable();
             $table->string('email');
             $table->string('username')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('role')->default('user');
             $table->boolean('isProfilePrivate')->default(false);
             $table->integer('total_claims')->default(0);
@@ -26,7 +24,6 @@ return new class extends Migration
             $table->integer('total_comments')->default(0);
             $table->integer('total_contributions')->default(0);
             $table->integer('total_received_thanks')->default(0);
-            $table->text('biography')->nullable();
             $table->string('password');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('verification_token')->nullable();
